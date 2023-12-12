@@ -1,0 +1,96 @@
+---
+
+- name: Install required packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - curl
+    - gnupg
+    - apt-transport-https
+
+- name: Import RabbitMQ team GPG key
+  shell: "curl -1sLf 'https://keys.openpgp.org/vks/v1/by-fingerprint/{{ rabbit_gpg_fingerprint }}' | gpg --dearmor | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null"
+  args:
+    executable: /bin/bash
+
+- name: Import RabbitMQ Erlang GPG key
+  shell: "curl -1sLf 'https://keyserver.ubuntu.com/pks/lookup?op=get&search={{ erland_gpg_searchkey }}' | gpg --dearmor | tee /usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg > /dev/null"
+  args:
+    executable: /bin/bash
+
+- name: Import PackageCloud RabbitMQ GPG key
+  shell: "curl -1sLf 'https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey' | gpg --dearmor | tee /usr/share/keyrings/io.packagecloud.rabbitmq.gpg > /dev/null"
+  args:
+    executable: /bin/bash
+
+- name: Update apt repositories
+  apt:
+    update_cache: yes
+
+- name: Install Erlang packages
+  apt:
+    name: "{{ erlang_packages }}"
+    state: present
+
+- name: Install RabbitMQ Server
+  apt:
+    name: rabbitmq-server
+    state: present
+    update_cache: yes
+    force_apt_get: yes
+
+- name: Enable RabbitMQ Management Plugin
+  command: sudo rabbitmq-plugins enable rabbitmq_management
+
+- name: Display RabbitMQ plugins
+  command: rabbitmq-plugins list
+  register: plugins_output
+
+- name: Show RabbitMQ plugins status
+  debug:
+    var: plugins_output.stdout_lines
+
+- name: Create configuration file in "/etc/rabbitmq/rabbitmq.conf"
+  template:
+    dest: "/etc/rabbitmq/rabbitmq.conf"
+    src: rabbitmq.conf.j2
+    owner: rabbitmq
+    group: rabbitmq
+
+- name: Restart RabbitMQ server again
+  command: systemctl restart rabbitmq-server.service
+
+- name: Display RabbitMQ service status
+  systemd:
+    name: rabbitmq-server.service
+    state: started
+  register: service_status
+
+- name: Show RabbitMQ service status
+  debug:
+    var: service_status
+
+- name: Fetch the file from the remote node
+  fetch:
+    src: /var/lib/rabbitmq/.erlang.cookie
+    dest: "{{ playbook_dir }}/fetched_files/"
+    flat: yes
+    fail_on_missing: yes
+  when: inventory_hostname == groups['master'][0]
+
+- name: Create destination directory
+  file:
+    path: /var/lib/rabbitmq/
+    state: directory
+  when: "'slaves' in group_names"
+  #with_items: "{{ groups['slaves'] }}"
+
+- name: Copy the file to every member of the group
+  copy:
+    src: "{{ playbook_dir }}/fetched_files/.erlang.cookie"
+    dest: /var/lib/rabbitmq/.erlang.cookie
+    force: true
+  when: "'slaves' in group_names"
+  #with_items: "{{ groups['slaves'] }}"
+

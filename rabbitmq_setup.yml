@@ -1,0 +1,13 @@
+---
+
+- name: Role that manage installation of rabbitmq
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: install
+
+- name: Role that configures rabbitmq cluster
+  hosts: slaves
+  gather_facts: false
+  roles:
+    - role: config

@@ -1,0 +1,10 @@
+##
+## Cluster name
+## ====================
+##
+cluster_name = {{ cluster_name }} 
+
+# allow access to management console from all sources not only localhost
+{% if disable_loopback_users == true %}
+loopback_users = none
+{% endif %}

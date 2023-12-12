@@ -1,0 +1,26 @@
+---
+
+disable_loopback_users: true
+cluster_name: mycluster
+
+rabbit_gpg_fingerprint: "0A9AF2115F4687BD29803A206B73A36E6026DFCA"
+erland_gpg_searchkey: "0xf77f1eda57ebb1cc"
+
+erlang_packages:
+  - erlang-base
+  - erlang-asn1
+  - erlang-crypto
+  - erlang-eldap
+  - erlang-ftp
+  - erlang-inets
+  - erlang-mnesia
+  - erlang-os-mon
+  - erlang-parsetools
+  - erlang-public-key
+  - erlang-runtime-tools
+  - erlang-snmp
+  - erlang-ssl
+  - erlang-syntax-tools
+  - erlang-tftp
+  - erlang-tools
+  - erlang-xmerl

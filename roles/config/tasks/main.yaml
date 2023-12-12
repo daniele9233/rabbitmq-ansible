@@ -1,0 +1,62 @@
+---
+
+- name: Restart RabbitMQ server
+  systemd:
+    name: rabbitmq-server
+    state: restarted
+
+- name: Stop RabbitMQ app
+  command: rabbitmqctl stop_app
+
+- name: Reset Cluster Node
+  shell: rabbitmqctl reset
+  register: reset_node_result
+
+- name: Print Reset node Result
+  debug:
+    var: reset_node_result.stdout_lines
+
+- name: Print Debug Information
+  debug:
+    msg: "Joining RabbitMQ Cluster with master node: {{ groups['master'][0] }}"
+
+- name: RabbitMQ Join Cluster
+  shell: rabbitmqctl join_cluster rabbit@{{ groups['master'][0] }}
+  register: join_cluster_result
+
+- name: Print Join Cluster Result
+  debug:
+    var: join_cluster_result.stdout_lines
+
+- name: Start RabbitMQ app
+  command: rabbitmqctl start_app
+
+- name: Check RabbitMQ status
+  command: systemctl status rabbitmq-server.service
+  register: service_status
+
+- name: Show RabbitMQ service status
+  debug:
+    var: service_status
+
+- name: Set High Availability Policy
+  command: rabbitmqctl set_policy ha-all "" '{"ha-mode":"all","ha-sync-mode":"automatic"}'
+
+- name: Check RabbitMQ Cluster Status Again
+  command: rabbitmqctl cluster_status
+  register: cluster_status
+
+- name: Show RabbitMQ cluster Status again
+  debug:
+    var: cluster_status
+
+- name: List RabbitMQ Policies
+  command: sudo rabbitmqctl list_policies
+  register: list_policies
+
+- name: Show RabbitMQ policies
+  debug:
+    var: list_policies
+
+- name: Restart RabbitMQ server again
+  command: systemctl restart rabbitmq-server.service
